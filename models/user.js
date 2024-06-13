@@ -39,6 +39,12 @@ const userSchema = new mongoose.Schema({
     default:0,
     required:true
   },
+  firstName:{
+    type: String,
+  },
+  lastName:{
+    type: String,
+  },
   wallets:{
     type:Array,
     default:[
@@ -51,19 +57,19 @@ const userSchema = new mongoose.Schema({
       {
         wallet:"xxxxxxxxxxxxxxxx",
         coin:"Ethereum",
-        index:0,
+        index:1,
         symbol: 'ETH'
       },
       {
         wallet:"xxxxxxxxxxxxxxxx",
         coin:"Tether",
-        index:0,
+        index:2,
         symbol: 'USDT'
       },
       {
         wallet:"xxxxxxxxxxxxxxxx",
         coin:"Litecoin",
-        index:0,
+        index:3,
         symbol: 'LTC'
       }
 
@@ -107,6 +113,13 @@ const userSchema = new mongoose.Schema({
   address1:{
     type:String,
   },
+  everified:{
+    type:String,
+    default:"unverified"
+  },
+  verificationCode:{
+    type:String,
+  }
 });
 
 const User = mongoose.model('User', userSchema);

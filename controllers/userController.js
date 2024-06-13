@@ -7,8 +7,10 @@ const Investment = require('../models/invest');
 const Message = require('../models/message')
 const bcrypt = require('bcrypt');
 const Wallet = require('../models/wallet');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+require('dotenv').config();
 
-require("dotenv").config() 
 
 function generateSixDigitCode() {
   const min = 100000; // Minimum 6-digit number
@@ -23,10 +25,80 @@ function generateSixDigitCode() {
   return sixDigitCode;
 }
 
+// Extract the transporter configuration
+const transporter = nodemailer.createTransport({
+  host: "mail.mirrorstamptrading.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: `admin@mirrorstamptrading.com`,
+    pass: `!24Ernest24!`,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+// HTML template for the email
+const emailTemplate = (name) => `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome on board!</title>
+    <style>
+        body { font-family: sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .hero { background-color: #f5f5f5; padding: 40px; text-align: center; }
+        .cta-button { display: inline-block; padding: 10px 20px; background-color: #005b49; color: white !important; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Welcome, ${name}!</h1>
+            <p>Thank you for joining Bitstamp. We're thrilled to have you as part of our community.</p>
+        </div>
+
+        <h2>Getting Started</h2>
+        <p>Here's how to make the most of Bitstamp:</p>
+        <ul>
+            <li>Complete your profile to personalize your experience.</li>
+            <li>Explore our trading plans.</li>
+        </ul>
+
+        <h2>What's Next?</h2>
+        <p>We have exciting things planned! Keep an eye on your inbox for updates, special offers, and tips.</p>
+
+        <div style="text-align: center;">
+            <a href="mirrorstamptrading.com" class="cta-button">Visit Our Website</a>
+        </div>
+
+        <p>Thanks again for joining us!</p>
+        <p>The Bitstamp Team</p>
+    </div>
+</body>
+</html>
+`;
+
+const sendMail = async (email, name) => {
+
+  try {
+    await transporter.sendMail({
+      from: '"Bitstamp" <admin@mirrorstamptrading.com>',
+      to: email,
+      subject: "Welcome to Bitstamp",
+      html: emailTemplate(name),
+    })
+    console.log('Email sent successfully!');
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+};
+
 // Register a new user
 module.exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, refferalEmail } = req.body;
+    const { name, email, password, refferalEmail, firstName, lastName } = req.body;
 
     // Check if the email is already registered
     const existingUser = await User.findOne({ email });
@@ -34,35 +106,40 @@ module.exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Hash the password before saving to the database
-    const UserId =  generateSixDigitCode()
+    // Generate UserId
+    const UserId = generateSixDigitCode();
 
     // Create a new user object
     const newUser = new User({
-      name,
+      name: `${firstName} ${lastName}`,
+      firstName,
+      lastName,
       email,
       password,
       UserId,
-      refferalEmail
+      refferalEmail,
     });
+
+    // Generate JWT token
     const token = jwt.sign({ userId: newUser._id }, process.env.APP_SECRET);
 
     // Save the new user to the database
     await newUser.save();
 
-    return res.status(201).json({ message: 'User registered successfully', token });
+    // Send welcome email
+    await sendMail(email, firstName);
+
+    return res.status(201).json({ message: 'User registered successfully', token, newUser });
   } catch (error) {
     console.error('Error during user registration:', error);
-    // Check if the error is a Mongoose ValidationError
+
+    // Handle Mongoose ValidationError separately
     if (error instanceof mongoose.Error.ValidationError) {
-      // Extract the validation error messages
       const validationErrors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ errors: validationErrors });
     }
 
-    console.error('Error during user registration:', error);
     return res.status(500).json({ message: 'Internal server error' });
-    
   }
 };
 
@@ -89,12 +166,100 @@ module.exports.loginUser = async (req, res) => {
     // You can set the token as an HTTP-only cookie to enhance security
     // res.cookie('token', token, { httpOnly: true });
 
-    return res.status(200).json({ token, message: 'Login successful' });
+    return res.status(200).json({ token, message: 'Login successful', user });
   } catch (error) {
     console.error('Error during user login:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+// Generate a 4-digit verification code
+const generateVerificationCode = () => {
+  return crypto.randomInt(1000, 9999).toString();
+};
+
+// Send email with the verification code
+const sendVerificationMail = async (email, code) => {
+  try {
+    await transporter.sendMail({
+      from: '"Bitstamp Mirror Trading" <admin@mirrorstamptrading.com>',
+      to: email,
+      subject: "Your Verification Code",
+      html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Verification Code</title>
+          <style>
+              body { font-family: sans-serif; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; text-align: center; }
+              .code { font-size: 2em; font-weight: bold; }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <p>Your verification code is:</p>
+              <p class="code">${code}</p>
+              <p>Please use this code to complete your registration.</p>
+          </div>
+      </body>
+      </html>
+      `,
+    });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw new Error('Failed to send verification email');
+  }
+};
+
+// Controller to send verification code
+module.exports.sendVerificationCode = async (req, res) => {
+  try {
+    const userId = req.user.userId
+    // Check if the email is already registered
+    const existingUser = await User.findOne({ _id: userId });
+    // console.log(existingUser, userId)
+    if (!existingUser) {
+      return res.status(400).json({ message: 'User does not exist' });
+    }
+
+    // Generate verification code
+    const verificationCode = generateVerificationCode();
+
+    // Send verification code to user's email
+    await sendVerificationMail(existingUser.email, verificationCode);
+
+    // Optionally save the verification code in the database or cache
+    // For simplicity, we'll assume you're using a field on the User model
+    existingUser.verificationCode = verificationCode;
+    await existingUser.save();
+    console.log('sent')
+    return res.status(200).json({ message: 'Verification code sent successfully' });
+  } catch (error) {
+    console.error('Error sending verification code:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+module.exports.verifyUser = async(req, res) => {
+  try {
+    const userId = req.user.userId
+    let {code} = req.body
+    // Check if the email is already registered
+    const user = await User.findById(userId);
+    if (user.verificationCode==code) {
+      user.everified = "verified"
+      await user.save();
+      return res.status(200).json({ message: 'Verified successfully' });
+    }else{
+      return res.status(404).json({ message: 'code is wrong' });
+    }
+  } catch (error) {
+    console.error('Error verifying code:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+}
+
 
 // Deposit funds into the user's account
 module.exports.depositFunds = async (req, res) => {
@@ -192,13 +357,16 @@ module.exports.declineDeposit = async (req, res) => {
 // Withdraw funds from the user's account
 module.exports.withdrawFunds = async (req, res) => {
   try {
-    const { amount, wallet, network } = req.body;
+    const { amount, address, method, password, network } = req.body;
     const userId = req.user.userId
 
     // Check if the user exists in the database
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.password !== password) {
+      return res.status(404).json({ message: 'Incorrect password' });
     }
 
     // Check if the user has sufficient balance for withdrawal
@@ -210,9 +378,10 @@ module.exports.withdrawFunds = async (req, res) => {
     const newWithdrawal = new Withdrawal({
       userId,
       amount,
-      wallet, 
+      address,
       network,
       date: new Date(),
+      method,
       status: 'pending', // Set the status to 'pending' initially
     });
 
@@ -267,6 +436,7 @@ module.exports.uploadID = async (req, res) => {
       frontImageUrl,
       backImageUrl,
     };
+
     user.verified="submitted"
     await user.save();
 
@@ -276,11 +446,31 @@ module.exports.uploadID = async (req, res) => {
       backImageUrl,
     });
   } catch (error) {
-    console.error('Error uploading to Cloudinary:', error);
+    console.error('Error uploading:', error);
     res.status(500).json({ error: 'Image upload failed' });
   }
 };
+module.exports.updateVerifcation = async (req, res) => {
+  try {
+    const { userId, action } = req.body;
 
+    const user = await User.findById(userId); // Assuming you have req.user._id from authentication
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.verified=action
+    await user.save();
+
+    res.status(200).json({
+      message: 'Udated successfully',
+    });
+  } catch (error) {
+    console.log(error);
+    console.error('Error uploading:', error);
+    res.status(500).json({ error: 'Failed to veridfy' });
+  }
+};
 module.exports.createMessage = async (req, res) => {
   try {
     const { title, reason, message } = req.body;
@@ -315,10 +505,83 @@ module.exports.getUserDownlines = async (req, res) => {
   }
 };
 
-module.exports.updateWallet = async  (req, res) => {
-  const { wallet, coin, index} = req.body;
+// module.exports.updateWallet = async  (req, res) => {
+//   const { wallet, coin, index} = req.body;
+//   const { userId } = req.user;
+// console.log(req.body)
+
+//   try {
+//     const userProfile = await User.findById(userId);
+//     if (!userProfile) {
+//       return res.status(404).send('User not found');
+//     }
+
+//     const existingWalletIndex = userProfile.wallets.findIndex(w => w.coin === coin);
+
+//     if (existingWalletIndex !== -1) {
+//       // Update existing wallet
+//       userProfile.wallets[existingWalletIndex].wallet = wallet;
+//       const validationError = userProfile.validateSync();
+//       if (validationError) {
+//         console.error('Validation Error:', validationError);
+//         return res.status(400).send(validationError.message);
+//       }
+//       await userProfile.save();
+//     } else {
+//       // Add new wallet
+//       userProfile.wallets.push({ wallet, coin, index });
+//     }
+
+//     await userProfile.save();
+//     res.status(200).json(userProfile);
+//   } catch (error) {
+//     res.status(500).send(error.message);
+//   }
+  
+
+// }
+// module.exports.updateWallet = async (req, res) => {
+//   const { wallet, coin, index } = req.body;
+//   const { userId } = req.user;
+
+//   try {
+//     const userProfile = await User.findById(userId);
+//     if (!userProfile) {
+//       return res.status(404).send('User not found');
+//     }
+
+//     const existingWalletIndex = userProfile.wallets.findIndex(w => w.coin === coin);
+
+//     if (existingWalletIndex !== -1) {
+//       console.log("here oh")
+//       // Update existing wallet
+//       userProfile.wallets[existingWalletIndex].wallet = wallet;
+//     } else {
+//       // Add new wallet
+//       userProfile.wallets.push({ wallet, coin, index });
+//     }
+
+//     const validationError = userProfile.validateSync();
+//     if (validationError) {
+//       console.error('Validation Error:', validationError);
+//       return res.status(400).send(validationError.message);
+//     }
+
+//     await userProfile.save();
+//     res.status(200).json(userProfile);
+//   } catch (error) {
+//     console.error('Error:', error);
+//     res.status(500).send(error.message);
+//   }
+// };
+
+
+module.exports.updateWallet = async (req, res) => {
+  const { wallet, coin, index } = req.body;
   const { userId } = req.user;
-console.log(req.body)
+
+  console.log('Request Body:', req.body);
+  console.log('User ID:', userId);
 
   try {
     const userProfile = await User.findById(userId);
@@ -326,31 +589,50 @@ console.log(req.body)
       return res.status(404).send('User not found');
     }
 
+    console.log('User Profile Before Update:', userProfile);
+
     const existingWalletIndex = userProfile.wallets.findIndex(w => w.coin === coin);
 
+    // if (existingWalletIndex !== -1) {
+    //   // Update existing wallet
+    //   userProfile.wallets[existingWalletIndex].wallet = wallet;
+    //   await userProfile.save().
+    //   then((result) => {console.log("done saving")})
+    // console.log('User Profile After Update:', userProfile);
+    // }
     if (existingWalletIndex !== -1) {
-      // Update existing wallet
       userProfile.wallets[existingWalletIndex].wallet = wallet;
-      const validationError = userProfile.validateSync();
-      if (validationError) {
-        console.error('Validation Error:', validationError);
-        return res.status(400).send(validationError.message);
+    
+      // Explicitly mark modified (if needed)
+      userProfile.markModified('wallets'); 
+    
+      try {
+        const savedProfile = await userProfile.save(); // Await the save operation
+        console.log("Profile saved successfully:", savedProfile); 
+      } catch (error) {
+        console.error("Error saving profile:", error);
+        res.status(500).send("Internal server error"); // Handle the error gracefully
       }
-      await userProfile.save();
-    } else {
+    } 
+    else {
       // Add new wallet
       userProfile.wallets.push({ wallet, coin, index });
     }
 
+    const validationError = userProfile.validateSync();
+    if (validationError) {
+      console.error('Validation Error:', validationError);
+      return res.status(400).send(validationError.message);
+    }
     await userProfile.save();
+    
+
     res.status(200).json(userProfile);
   } catch (error) {
+    console.error('Error:', error);
     res.status(500).send(error.message);
   }
-  
-
-}
-
+};
 module.exports.resetPassword = async (req, res) => {
   try {
     const { oldPassword, newPassword, confirmPassword } = req.body;
@@ -422,8 +704,9 @@ module.exports.getUserProfileById = async (req, res) => {
     if (!userProfile) {
       return res.status(404).json({ message: 'User profile not found' });
     }
+    const message = await Message.find({userId: userProfile._id})
 
-    return res.status(200).json(userProfile);
+    return res.status(200).json({userProfile, message});
   } catch (error) {
     console.error('Error while fetching user profile:', error);
     return res.status(500).json({ message: 'Internal server error' });
@@ -433,7 +716,7 @@ module.exports.getUserProfileById = async (req, res) => {
 module.exports.updateUserInfo = async (req, res) => {
   try {
     const userId = req.user.userId
-    const { name, email, gender, region, country, city, zip, address2, address1, phone } = req.body;
+    const { firstName, lastName, email, gender, region, country, city, zip, address2, address1, phone } = req.body;
 
     // Check if the user exists in the database
     const user = await User.findById(userId);
@@ -448,8 +731,8 @@ module.exports.updateUserInfo = async (req, res) => {
     }
 
     // Update the user's name and email
-    user.name = name;
-    user.email = email;
+    user.firstName = firstName 
+    user.lastName = lastName
     user.phone=phone
     user.address1 = address1
     user.address2 = address2

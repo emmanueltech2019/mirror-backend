@@ -10,7 +10,10 @@ const withdrawalSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  wallet: {
+  network: {
+    type: String,
+  },
+  address: {
     type: String,
     required: true,
   },

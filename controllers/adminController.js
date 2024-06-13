@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const Deposit = require("../models/deposit");
 const User = require("../models/user");
 const Withdrawal = require("../models/withdraw");
-
+const Messages = require("../models/message");
 function generateSixDigitCode() {
   const min = 100000; // Minimum 6-digit number
   const max = 999999; // Maximum 6-digit number
@@ -128,7 +128,7 @@ module.exports.registerAdmin = async (req, res) => {
       const {userId} =req.body
       // Fetch all deposits from the database
       const user = await User.findOne(userId);
-  
+      
       return res.status(200).json(user);
     } catch (error) {
       console.error('Error while fetching users:', error);
@@ -263,5 +263,25 @@ module.exports.registerAdmin = async (req, res) => {
     } catch (error) {
       console.error('Error during user information update:', error);
       return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+
+  module.exports.deleteUser = async (req, res) => {
+    const { userId } = req.params;
+  
+    console.log('Deleting user with ID:', userId);
+  
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).send('User not found');
+      }
+  
+      await User.findByIdAndDelete(userId);
+      console.log('User deleted:', userId);
+      res.status(200).send('User deleted successfully');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      res.status(500).send(error.message);
     }
   };
