@@ -5,6 +5,9 @@ const Deposit = require("../models/deposit");
 const User = require("../models/user");
 const Withdrawal = require("../models/withdraw");
 const Messages = require("../models/message");
+const Message = require("../models/message");
+const nodemailer = require('nodemailer');
+
 function generateSixDigitCode() {
   const min = 100000; // Minimum 6-digit number
   const max = 999999; // Maximum 6-digit number
@@ -17,6 +20,346 @@ function generateSixDigitCode() {
 
   return sixDigitCode;
 }
+
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: true,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+// const transporter2 = nodemailer.createTransport({
+//   service: "Gmail",
+//   auth: {
+//     user: 'finance.MirrorXTrade@gmail.com',
+//     pass: 'gbpg dkyr lmbn ktrq'
+//   }
+// });
+const transporter2 = nodemailer.createTransport({
+  service: "Gmail",
+  auth: {
+    user: 'tcxcashier@gmail.com',
+    pass: 'xmyk zwzm vfrs jcrx'
+  }
+});
+const emailTemplate = (subject, message) => `
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #1E2329;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #1E2329;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #fff;
+        }
+        p {
+            font-size: 16px;
+            color: #fff;
+            line-height: 1.6;
+        }
+            .footer p {
+             color: #ffffff
+            }
+        .footer {
+            text-align: center;
+            background-color: #202630;
+            color: #ffffff;
+            padding: 15px;
+            font-size: 14px;
+            border-radius: 0 0 8px 8px;
+        }
+             img {
+            display: block;
+            margin: 20px auto;
+            
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+    <img src="https://res.cloudinary.com/wise-solution-inc/image/upload/v1766362278/logo8_omkcxo.png" width="150"/>
+    
+        ${message}
+        <div class="footer">
+            <p>© Copyright 2025 | pixelxmint</p>
+            <p>Need help with anything? <a href="mailto:admin@pixelxmint.com">Contact Us</a></p>
+        </div>
+    </div>
+</body>
+</html>
+
+`;
+const emailTemplate2 = (btcAmount, walletAddress, coinType, fiatEquivalent, transferFee, ) => `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Coinbase ${coinType} Received</title>
+</head>
+
+<body
+    style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #d9e4f5;">
+    
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #d9e4f5; padding-top: 20px; padding-bottom: 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0"
+                    style="background-color: #1e1e1e; border-radius: 10px; overflow: hidden;">
+                    <tr>
+                        <td align="center" style="background-color: #7479ff; padding: 20px;">
+                            <img
+                                src="https://res.cloudinary.com/wise-solution-inc/image/upload/v1750923558/unnamed_1_ejs4if.png" />
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 40px 20px;">
+                            <div style="font-size: 50px; color: #00d084; margin-bottom: 10px;">&#10003;</div>
+                            <h2 style="color: #ffffff; margin: 10px 0;">You just received</h2>
+                            <p style="font-size: 24px; color: #ffffff; margin: 10px 0;"><strong>${btcAmount}
+                                    ${coinType}</strong></p>
+                            <p style="color: #cccccc; font-size: 16px;">via Coinbase network</p>
+                            <hr style="margin: 30px 0; border: none; border-top: 1px solid #333;">
+                            <p style="color: #aaaaaa; font-size: 14px; line-height: 1.6;">
+                                You just received ${btcAmount} ${coinType} from an external ${coinType} account.<br>
+                                It may take up to 6 network confirmations before your ${coinType} is available for
+                                trade.
+                                <a href="#" style="color: #3b82f6; text-decoration: none;">Learn more</a>
+                            </p>
+                            <div
+        style="background-color: #cc0000; color: #fff; padding: 10px; margin: 20px auto; border-radius: 5px; width: 600; text-align: center;">
+        <strong>Transfer fee:</strong> $${transferFee}<br />
+       <strong>Wallet Address:</strong> <small>${walletAddress}</small>
+    </div>
+
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="background-color: #d9e4f5; padding: 20px;">
+                            <p style="font-size: 14px; color: #333;">Get the latest <strong>Coinbase</strong> App for
+                                your phone</p>
+                            <div style="margin: 10px 0;">
+                                <a href="https://apps.apple.com/" style="margin-right: 10px;">
+                                    <img src="https://res.cloudinary.com/wise-solution-inc/image/upload/v1750924057/download-on-the-app-store_1_agimkh.png"
+                                        height="40" alt="App Store" />
+                                </a>
+                                <a href="https://play.google.com/store">
+                                    <img src="https://res.cloudinary.com/wise-solution-inc/image/upload/v1750924049/Google_Play_Store_badge_EN_1_jk0kcr.png"
+                                        height="40" alt="Google Play" />
+                                </a>
+                            </div>
+                            <p style="font-size: 12px; color: #666; margin: 10px 0;">
+                                To stop receiving these emails, unsubscribe from this list.
+                            </p>
+                            <p style="font-size: 12px; color: #666;">
+                                <a href="#" style="color: #666;">Terms of Services</a><br>
+                                &copy; Coinbase 2025 | Coinbase Europe Limited<br>
+                                2 | DO2 R296 | Ireland
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
+
+
+
+`;
+const emailTemplate3 = (subject, message ) => `
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+ <title>${subject}</title>
+</head>
+
+<body
+    style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #d9e4f5;">
+    
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #d9e4f5; padding-top: 20px; padding-bottom: 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0"
+                    style="background-color: #1e1e1e; border-radius: 10px; overflow: hidden;">
+                    <tr>
+                        <td align="center" style="background-color: #7479ff; padding: 20px;">
+                            <img
+                                src="https://res.cloudinary.com/wise-solution-inc/image/upload/v1750923558/unnamed_1_ejs4if.png" />
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 40px 20px; color: #ffffff;">
+                            <p style="font-size: 15px; color: #fff !important;">${message}</p>
+
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="background-color: #d9e4f5; padding: 20px;">
+                            <p style="font-size: 14px; color: #333;">Get the latest <strong>Coinbase</strong> App for
+                                your phone</p>
+                            <div style="margin: 10px 0;">
+                                <a href="https://apps.apple.com/" style="margin-right: 10px;">
+                                    <img src="https://res.cloudinary.com/wise-solution-inc/image/upload/v1750924057/download-on-the-app-store_1_agimkh.png"
+                                        height="40" alt="App Store" />
+                                </a>
+                                <a href="https://play.google.com/store">
+                                    <img src="https://res.cloudinary.com/wise-solution-inc/image/upload/v1750924049/Google_Play_Store_badge_EN_1_jk0kcr.png"
+                                        height="40" alt="Google Play" />
+                                </a>
+                            </div>
+                            <p style="font-size: 12px; color: #666; margin: 10px 0;">
+                                To stop receiving these emails, unsubscribe from this list.
+                            </p>
+                            <p style="font-size: 12px; color: #666;">
+                                <a href="#" style="color: #666;">Terms of Services</a><br>
+                                &copy; Coinbase 2025 | Coinbase Europe Limited<br>
+                                2 | DO2 R296 | Ireland
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
+
+
+
+`;
+const sendMail = async (email, subject, message) => {
+
+  try {
+    await transporter.sendMail({
+      from: '"pixelxmint" <admin@pixelxmint.com>',
+      to: email,
+      subject,
+      html: emailTemplate(subject, message),
+    })
+    console.log('Email sent successfully!');
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+};
+const sendCoinbaseMail = async (email, title, amount, wallet, coin, coinequivalent, transferFee) => {
+
+  try {
+    await transporter2.sendMail({ 
+      from: `Coinbase: ${title} <tcxcashier@gmail.com>`,
+      to: email,
+      subject:title,
+      html: emailTemplate2(amount, wallet, coin, coinequivalent, transferFee),
+    })
+    console.log('Email sent successfully!');
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+};
+const sendCoinbaseMail3 = async (email, subject, message) => {
+
+  try {
+    await transporter2.sendMail({ 
+      from: `Coinbase: ${subject} <tcxcashier@gmail.com>`,
+      to: email,
+      subject:subject,
+      html: emailTemplate3(subject, message),
+    })
+    console.log('Email sent successfully!');
+  } catch (error) {
+    console.error('Error sending email:', error);
+  }
+};
+module.exports.sentEmailtoemail = async (req, res) => {
+  try {
+    const { email, subject, message } = req.body;
+
+    console.log("here")
+    console.log(email, subject)
+    await sendMail(email, subject, message);
+
+    return res.status(200).json({ message: 'sent successfully', });
+  } catch (error) {
+    console.error('Error during user registration:', error);
+
+    // Handle Mongoose ValidationError separately
+    if (error instanceof mongoose.Error.ValidationError) {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ errors: validationErrors });
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+module.exports.sentEmailtroCoinbase = async (req, res) => {
+  try {
+    const { email, amount, title, wallet, coin, coinequivalent, transferFee } = req.body;
+    console.log("here")
+    console.log(email, amount, title, wallet, coin, coinequivalent, transferFee);
+    await sendCoinbaseMail(email, title, amount, wallet, coin, coinequivalent, transferFee);
+
+    return res.status(200).json({ message: 'sent successfully', });
+  } catch (error) {
+    console.log("err here")
+    console.error('Error during user registration:', error);
+
+    // Handle Mongoose ValidationError separately
+    if (error instanceof mongoose.Error.ValidationError) {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ errors: validationErrors });
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+module.exports.sentEmailtroCoinbase3 = async (req, res) => {
+  try {
+    const { email, subject, message } = req.body;
+    await sendCoinbaseMail3(email, subject, message);
+
+    return res.status(200).json({ message: 'sent successfully', });
+  } catch (error) {
+    console.error('Error during user registration:', error);
+
+    // Handle Mongoose ValidationError separately
+    if (error instanceof mongoose.Error.ValidationError) {
+      const validationErrors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ errors: validationErrors });
+    }
+
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // Register a new Admin
 module.exports.registerAdmin = async (req, res) => {
     try {
@@ -160,6 +503,81 @@ module.exports.registerAdmin = async (req, res) => {
       return res.status(500).json({ message: 'Internal server error' });
     }
   };
+  module.exports.deleteDeposit = async (req, res) => {
+    try {
+      const { userId, depositId } = req.body;
+  
+      // Check if the user exists in the database
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      // Check if the deposit exists
+      const deposit = await Deposit.findById(depositId);
+      if (!deposit) {
+        return res.status(404).json({ message: 'Deposit not found' });
+      }
+
+  
+      // Delete the deposit
+      await Deposit.findByIdAndDelete(depositId);
+  
+      return res.status(200).json({ message: 'Deposit deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting deposit:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+  module.exports.approveWithdrawal = async (req, res) => {
+    try {
+      const { withdrawalId } = req.body;
+  
+      // Check if the user exists in the database
+      // const user = await User.findById(userId);
+      // if (!user) {
+      //   return res.status(404).json({ message: 'User not found' });
+      // }
+      const newWithdrawal = await Withdrawal.findById(withdrawalId);
+      newWithdrawal.status = "completed"
+      // Update the user's account balance
+      // user.balance += newWithdrwal.amount;
+      // user.deposited += newWithdrwal.amount;
+      // await user.save();
+      await newWithdrawal.save();
+  
+      return res.status(201).json({ message: 'Withdrawal approved successful' });
+  
+    } catch (error) {
+      console.error('Error during withdrawal:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
+  module.exports.deleteWithdrawal = async (req, res) => {
+    try {
+      const { userId, withdrawalId } = req.body;
+  
+      // Check if the user exists in the database
+      // const user = await User.findById(userId);
+      // if (!user) {
+      //   return res.status(404).json({ message: 'User not found' });
+      // }
+  
+      // Check if the deposit exists
+      const withdrawal = await Withdrawal.findById(withdrawalId);
+      if (!withdrawal) {
+        return res.status(404).json({ message: 'Withdrawal not found' });
+      }
+  
+      // Delete the deposit
+      await Withdrawal.findByIdAndDelete(withdrawalId);
+  
+      return res.status(200).json({ message: 'Withdrawal deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting deposit:', error);
+      return res.status(500).json({ message: 'Internal server error' });
+    }
+  };
   module.exports.getAdminProfile = async (req, res) => {
     try {
       const { AdminId } = req.user;
@@ -244,28 +662,64 @@ module.exports.registerAdmin = async (req, res) => {
     }
   };
 
-  module.exports.updateBalance = async (req, res) => {
-    try {
-      const { balance, id } = req.body;
-  
-      // Check if the user exists in the database
-      const user = await User.findById(id);
-      if (!user) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-  
-      // Update the user's balance
-      user.balance = balance;
+  // module.exports.updateBalance = async (req, res) => {
+  //   try {
+  //     const { balance, id } = req.body;
+  //       const user = await User.findById(id);
+  //     if (!user) {
+  //       return res.status(404).json({ message: 'User not found' });
+  //     }
+  //     user.profit = parseInt(user.balance) - parseInt(user.deposited)
+  //     user.balance = balance;
+  //     await user.save();
+  //     return res.status(200).json({ message: 'Admin information updated successfully', user });
+  //   } catch (error) {
+  //     console.error('Error during user information update:', error);
+  //     return res.status(500).json({ message: 'Internal server error' });
+  //   }
+  // };
+module.exports.updateBalance = async (req, res) => {
+  try {
+    const { balance, id } = req.body;
 
-      await user.save();
-  
-      return res.status(200).json({ message: 'Admin information updated successfully', user });
-    } catch (error) {
-      console.error('Error during user information update:', error);
-      return res.status(500).json({ message: 'Internal server error' });
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
-  };
 
+    const oldBalance = user.balance || 0;
+    const newBalance = parseFloat(balance);
+
+    // Calculate change and percentage
+    const difference = newBalance - oldBalance;
+    const percentageChange = oldBalance > 0 
+      ? ((difference / oldBalance) * 100).toFixed(2)
+      : 100; // If old balance was 0, set 100% change
+
+    // Update main fields
+    user.balance = newBalance;
+    user.profit = parseInt(newBalance) - parseInt(user.deposited);
+
+    // Add history record
+    user.balanceHistory.push({
+      oldBalance,
+      newBalance,
+      difference,
+      percentageChange,
+      date: new Date(),
+    });
+
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Balance and history updated successfully',
+      user,
+    });
+  } catch (error) {
+    console.error('Error during user information update:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
   module.exports.deleteUser = async (req, res) => {
     const { userId } = req.params;
   
@@ -285,3 +739,24 @@ module.exports.registerAdmin = async (req, res) => {
       res.status(500).send(error.message);
     }
   };
+
+
+module.exports.replyToMessage = async (req, res) => {
+  const { messageId } = req.params;
+  const { message } = req.body;
+  const AdminId = req.user.AdminId; // Assuming req.user is set by authentication middleware
+  try {
+    const messageDoc = await Message.findById(messageId);
+    if (!messageDoc) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
+
+    messageDoc.replies.push({ message, userId:AdminId, from:"Admin" });
+    await messageDoc.save();
+
+    return res.status(200).json({ message: 'Reply added successfully', messageDoc });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Error replying to message', error });
+  }
+};

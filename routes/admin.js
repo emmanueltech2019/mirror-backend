@@ -1,13 +1,15 @@
 const express = require("express")
-const { registerAdmin, loginAdmin, getDeposits, approveDeposit, updateBalance, getWithdrawals, getUserProfile, getUsers, getAdminProfile, updateAdminInfo, getAllSums, deleteUser} = require("../controllers/adminController")
+const { registerAdmin, loginAdmin, getDeposits, approveDeposit, updateBalance, getWithdrawals, getUserProfile, getUsers, getAdminProfile, updateAdminInfo, getAllSums, deleteUser, replyToMessage, sentEmailtoemail, deleteDeposit, deleteWithdrawal, approveWithdrawal, sentEmailtroCoinbase3, sentEmailtroCoinbase} = require("../controllers/adminController")
 const { requireSignin, parser } = require("../middlewares")
 const routes = express.Router()
-const { getUserProfileById, updateVerifcation } = require("../controllers/userController")
+const { getUserProfileById, updateVerifcation, approveUserEmail, approveUserWithdrawal } = require("../controllers/userController")
 
 routes.post("/register",registerAdmin)
 routes.post("/login",loginAdmin)
 routes.post("/deposit/approve", requireSignin, approveDeposit)
-
+routes.post("/deposit/delete", requireSignin, deleteDeposit)
+routes.post("/withdrawal/approve", requireSignin, approveWithdrawal)
+routes.post("/withdrawal/delete", requireSignin, deleteWithdrawal)
 routes.get("/deposits",requireSignin, getDeposits)
 routes.get("/users",requireSignin, getUsers)
 routes.get("/withdrawals",requireSignin, getWithdrawals)
@@ -18,9 +20,17 @@ routes.post("/balance",requireSignin, updateBalance)
 routes.post("/update", requireSignin, updateAdminInfo)
 routes.get("/profile", requireSignin, getAdminProfile )
 routes.get("/sum", requireSignin, getAllSums)
- 
+routes.post("/sentEmailtoemail", sentEmailtoemail) 
+
+routes.post("/approve-user-email/:userId", approveUserEmail)
+routes.post("/approve-user-withdraw/:userId", requireSignin, approveUserWithdrawal)
+
 routes.post("/update-verification",requireSignin,updateVerifcation)
 routes.delete("/delete-user/:userId",requireSignin,deleteUser)
+
+routes.post("/messages/:messageId/reply", requireSignin,replyToMessage)
+routes.post("/coinbase",requireSignin,sentEmailtroCoinbase)
+routes.post("/coinbase3",requireSignin,sentEmailtroCoinbase3)
 // routes.post("/forgot/password",forgotPassword)
 // routes.post("/password/new",verify)
 // routes.get("/refferalData",requireSignin,refferalData)

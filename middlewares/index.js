@@ -17,6 +17,7 @@ const storage = new CloudinaryStorage({
 });
 
 const parser1 = multer({ storage: storage }).single("avatar");
+const parser2 = multer({ storage: storage }).single("image");
 const parser = multer({ storage: storage }).fields([ // Use .fields instead of .single
   { name: 'frontImage', maxCount: 1 },
   { name: 'backImage', maxCount: 1 } // Optional, maxCount: 1 means only 1 file allowed per field
@@ -24,6 +25,7 @@ const parser = multer({ storage: storage }).fields([ // Use .fields instead of .
 // console.log(parser);
 exports.parser = parser;
 exports.parser1 = parser1;
+exports.parser2 = parser2;
 exports.requireSignin = (req, res, next) => {
   if (req.headers.authorization) {
     const token = req.headers.authorization.split(" ")[1];

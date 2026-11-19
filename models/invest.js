@@ -27,7 +27,7 @@ const investmentSchema = new mongoose.Schema({
   },
   duration:{
     type: String
-  }
+  },
 });
 
 const Investment = mongoose.model('Investment', investmentSchema);
